@@ -8,6 +8,7 @@ use Carbon\carbon;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Order;
+use App\Models\OrderDetail;
 
 
 class OrderController extends Controller
@@ -40,25 +41,41 @@ class OrderController extends Controller
             'customer_name' => 'required',
             'phone' => 'required|min:10|max:10',
             'product_id' => 'required|exists:products,id',
-            'quantity' => 'required|integer|min:1',
+            'quantity' => 'required',
         ]);
-    
+        $net_amount = 0;
 
-        $product = Product::find($inputs['product_id']);
-        $net_amount = $product->price * $inputs['quantity'];
         $order = new Order();
-        $order->order_id = rand(10000, 99999);
+        $order->order_id = $this->uniqid();
         $order->customer_name = $inputs['customer_name'];
         $order->phone = $inputs['phone'];
         $order->net_amount = $net_amount;
-        $order->quantity = $inputs['quantity'];
-        $order->product_id = $inputs['product_id'];
-
-    
     
         $order->save();
     
+        $i=0;
+        foreach($inputs['product_id'] as $product) {
+            $order_detail = new OrderDetail;
+            $order_detail->order_id = $order->id;
+            $order_detail->product_id = $product;
+            $order_detail->quantity = $inputs['quantity'][$i];
+            $order_detail->save();
+            $product = Product::find($product);
+            $net_amount += $product->price * $inputs['quantity'][$i];
+            $i++;
+        }
+
+        Order::where('id', $order->id)->update(['net_amount'=>$net_amount]);
+
         return redirect()->route('orders.index');
+    }
+
+    public function uniqid() {
+        $id = rand(10000, 99999);
+        if(Order::where('order_id', $id)->first()) {
+            return $this->uniqid();
+        }
+        return $id;
     }
     
 
@@ -77,7 +94,9 @@ class OrderController extends Controller
     {
         $order = Order::find($id);
         $products = Product::all();
-        return view('orders.form', ['products' => $products, 'order'=>$order]);
+        $order_detail = OrderDetail::where('order_id', $id)->get();
+        //dd($order_detail);
+        return view('orders.form', ['products' => $products, 'order'=>$order, 'order_detail'=> $order_detail]);
     }
 
     /**
@@ -89,19 +108,31 @@ class OrderController extends Controller
         $request->validate([
             'customer_name' => 'required',
             'phone' => 'required',
-            'product_id' => 'required|exists:products,id',
-            'quantity' => 'required|integer|min:1',
+            'product_id' => 'required',
+            'quantity' => 'required',
         ]);
     
 
-        $product = Product::find($inputs['product_id']);
-        $net_amount = $product->price * $inputs['quantity'];
         $order = [];
         $order['customer_name'] = $inputs['customer_name'];
         $order['phone'] = $inputs['phone'];
+        
+
+        OrderDetail::where('order_id', $id)->delete();
+        $i=0;
+        $net_amount = 0;
+        foreach($inputs['product_id'] as $product) {
+            $order_detail = new OrderDetail;
+            $order_detail->order_id = $id;
+            $order_detail->product_id = $product;
+            $order_detail->quantity = $inputs['quantity'][$i];
+            $order_detail->save();
+            $product = Product::find($product);
+            $net_amount += $product->price * $inputs['quantity'][$i];
+            $i++;
+        }
+
         $order['net_amount'] = $net_amount;
-        $order['quantity'] = $inputs['quantity'];
-        $order['product_id'] = $inputs['product_id'];
  
         Order::where('id', $id)->update($order);
     
@@ -121,9 +152,11 @@ class OrderController extends Controller
     }
 
     public function showInvoice($orderId) {
-        $order = Order::where('orders.id', $orderId)
-                        ->select('orders.*', 'products.name as product_name', 'products.price')
-                        ->join('products', 'products.id', '=', 'orders.product_id')->first();
-        return view('orders.invoice', compact('order'));
+        $order = Order::where('orders.id', $orderId)->first();
+        $order_detail = OrderDetail::where('order_id', $orderId)
+                                ->select('products.name as product_name','products.price as product_price', 'order_details.*')
+                                ->join('products', 'products.id','=', 'order_details.product_id')->get();
+        //dd($order_detail);
+        return view('orders.invoice', compact('order', 'order_detail'));
     }
 }

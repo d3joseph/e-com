@@ -16,10 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('order_id');
             $table->string('customer_name', 255);
             $table->unsignedBigInteger('phone');
-            $table->double('net_amount', 8, 2);
-            $table->unsignedBigInteger('product_id');
-            $table->unsignedInteger('quantity');
-            $table->foreign('product_id')->references('id')->on('products')->onDelete('cascade');
+            $table->double('net_amount', 8, 2)->nullable();
             $table->softDeletes();
             $table->timestamps();
         });

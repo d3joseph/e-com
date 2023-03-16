@@ -66,10 +66,13 @@
 				<tbody>
 					
 					<tr>
-						<td>{{ $order->product_name }}</td>
-						<td>{{ $order->price }}</td>
-						<td>{{ $order->quantity }}</td>
+						
+							<td>@foreach($order_detail as $order_det){{ $order_det->product_name }}<br>@endforeach</td>
+						
+						<td>@foreach($order_detail as $order_det){{ $order_det->product_price }}<br>@endforeach</td>
+						<td>@foreach($order_detail as $order_det){{ $order_det->quantity }}<br>@endforeach</td>
 						<td>{{ $order->net_amount }}</td>
+
 					</tr>
 					
 				</tbody>

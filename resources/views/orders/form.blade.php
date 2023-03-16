@@ -89,37 +89,55 @@
                 <span class="text-danger" style="color:#e03b3b">{{ $errors->first('phone') }}</span>
             </div>
 
-            <div>
-                <label for="product_id">Product:</label>
-                <select name="product_id" id="product_id">
-                    <option value=''>Select Product </option>
-                    @foreach ($products as $product)
-                        @if(isset($order) && $product->id == $order->product_id)
-                        <option value="{{ $product->id }}" selected>{{ $product->name }}</option>
-                        @else
-                        <option value="{{ $product->id }}" >{{ $product->name }}</option>
-                        @endif
+            <div id="products">
+                
+                <?php $j = 1; ?>
+                @if(isset($order_detail))
+                @foreach($order_detail as $order_det)
+                    <div id='product_{{$j}}'>
+                        <div>
+                    <label for="product_id_{{$j}}">Product:{{$j}}</label>
+                    <select name="product_id[]" id="product_id_{{$j}}">
+                        <option value=''>Select Product </option>
+                        @foreach ($products as $product)
+                            @if($product->id == $order_det->product_id)
+                            <option value="{{ $product->id }}" selected>{{ $product->name }}</option>
+                            @else
+                            <option value="{{ $product->id }}" >{{ $product->name }}</option>
+                            @endif
+                        @endforeach
+                    </select>
+                    <span class="text-danger" style="color:#e03b3b">{{ $errors->first('product_id_'.$j) }}</span>
+                    </div>
+                    <br>
+            
+                    <div>
+                        <label for="quantity[]">Quantity:</label>
+                        <select name="quantity[]" id="quantity_{{$j}}">
+                            @for ($i = 1; $i <= 5; $i++)
+                        
+                                @if($i == $order_det->quantity)
+                                    <option value="{{ $i }}" selected>{{ $i }}</option>
+                                @else
+                                    <option value="{{ $i }}" >{{ $i }}</option>
+                                @endif
+                        
+                            @endfor
+                        </select>
+                        <span class="text-danger" style="color:#e03b3b">{{ $errors->first('quantity_'.$j) }}</span>
+                    </div>
+                    </div>
+                    <?php $j++;?>
                     @endforeach
-                </select>
-                <span class="text-danger" style="color:#e03b3b">{{ $errors->first('product_id') }}</span>
+                @endif
             </div>
-            <br>
 
             <div>
-                <label for="quantity">Quantity:</label>
-                <select name="quantity" id="quantity">
-                    @for ($i = 1; $i <= 5; $i++)
-                 
-                        @if(isset($order) && $i == $order->quantity)
-                            <option value="{{ $i }}" selected>{{ $i }}</option>
-                        @else
-                            <option value="{{ $i }}" >{{ $i }}</option>
-                        @endif
-                  
-                    @endfor
-                </select>
-                <span class="text-danger" style="color:#e03b3b">{{ $errors->first('quantity') }}</span>
+            <button class='button' id="add_prod">Add Product</button>
+            <button class='cancel-button' id="remove_prod">Remove Product</button>
+
             </div>
+            <br><br>
             <div>
                 <button class='button' type="submit">Submit</button>
                 <a class='cancel-button' href="{{route('orders.index')}}">Cancel</a>
@@ -127,4 +145,76 @@
 
         </form>
     </body>
+    <script>
+        // Get the Add Product and Remove Product buttons
+        let addButton = document.getElementById("add_prod");
+        let removeButton = document.getElementById("remove_prod");
+
+        // Get the Products div where new products will be added
+        let productsDiv = document.getElementById("products");
+
+        // Keep track of the number of products added
+        let productCount = {{ $j ?? 1 }};
+
+        // Add a new product input fields when the Add Product button is clicked
+        addButton.addEventListener("click", function(e) {
+            e.preventDefault();
+            // Create a new div to hold the product inputs
+            let newProductDiv = document.createElement("div");
+            newProductDiv.id = "product_" + productCount;
+
+            // Add the product inputs to the new div
+            newProductDiv.innerHTML = `
+                <div>
+                    <label for="product_id_${productCount}">Product:${productCount}</label>
+                    <select name="product_id[]" id="product_id_${productCount}">
+                        <option value=''>Select Product </option>
+                        @foreach ($products as $product)
+                            @if(isset($order) && $product->id == $order->product_id)
+                            <option value="{{ $product->id }}" selected>{{ $product->name }}</option>
+                            @else
+                            <option value="{{ $product->id }}" >{{ $product->name }}</option>
+                            @endif
+                        @endforeach
+                    </select>
+                    <span class="text-danger" style="color:#e03b3b">{{ $errors->first('product_id_${productCount}') }}</span>
+                </div>
+                <br>
+        
+                <div>
+                    <label for="quantity[]">Quantity:</label>
+                    <select name="quantity[]" id="quantity_${productCount}">
+                        @for ($i = 1; $i <= 5; $i++)
+                    
+                            @if(isset($order) && $i == $order->quantity)
+                                <option value="{{ $i }}" selected>{{ $i }}</option>
+                            @else
+                                <option value="{{ $i }}" >{{ $i }}</option>
+                            @endif
+                    
+                        @endfor
+                    </select>
+                    <span class="text-danger" style="color:#e03b3b">{{ $errors->first('quantity_${productCount}') }}</span>
+                </div>
+            `;
+
+            // Add the new div to the Products div
+            productsDiv.appendChild(newProductDiv);
+
+            // Increment the product count
+            productCount++;
+        });
+
+        // Remove the last product input fields when the Remove Product button is clicked
+        removeButton.addEventListener("click", function(e) {
+            e.preventDefault();
+            // Decrement the product count
+            productCount--;
+
+            // Get the last product div and remove it
+            let lastProductDiv = document.getElementById("product_" + productCount);
+            productsDiv.removeChild(lastProductDiv);
+        });
+    </script>
+
 </html>
